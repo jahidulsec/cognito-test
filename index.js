@@ -12,6 +12,7 @@ const {
 } = require("@aws-sdk/client-cognito-identity-provider");
 const crypto = require("crypto");
 const dotenv = require("dotenv");
+const { CognitoJwtVerifier } = require("aws-jwt-verify");
 
 dotenv.config();
 
@@ -22,6 +23,12 @@ console.log(CLIENT_ID);
 
 const client = new CognitoIdentityProviderClient({
   region: "eu-north-1",
+});
+
+const verifier = CognitoJwtVerifier.create({
+  userPoolId: process.env.AWS_USER_POOL_ID,
+  tokenUse: "access",
+  clientId: CLIENT_ID,
 });
 
 const app = express();
@@ -204,6 +211,19 @@ app.post("/otp", async (req, res) => {
   }
 });
 
+app.post("/verify", async (req, res) => {
+  const token = req.body["token"];
+  try {
+    const payload = await verifier.verify(
+      token // the JWT as string
+    );
+    console.log("Token is valid. Payload:", payload);
+    res.json(payload);
+  } catch {
+    console.log("Token not valid!");
+    res.status(401).json({ error: "Token not valid!" });
+  }
+});
 
 // get user info
 app.post("/user", async (req, res) => {
