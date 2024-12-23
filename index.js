@@ -9,6 +9,7 @@ const {
   ChallengeNameType,
   RespondToAuthChallengeCommand,
   GetUserCommand,
+  AdminInitiateAuthCommand,
 } = require("@aws-sdk/client-cognito-identity-provider");
 const crypto = require("crypto");
 const dotenv = require("dotenv");
@@ -18,8 +19,6 @@ dotenv.config();
 
 const CLIENT_ID = process.env.AWS_CLIENT_ID;
 const CLIENT_SECRET = process.env.AWS_CLIENT_SECRET;
-
-console.log(CLIENT_ID);
 
 const client = new CognitoIdentityProviderClient({
   region: "eu-north-1",
@@ -231,6 +230,30 @@ app.post("/user", async (req, res) => {
 
   const params = new GetUserCommand({
     AccessToken: token,
+  });
+
+  try {
+    const data = await client.send(params);
+    console.log(data);
+    res.json(data);
+  } catch (error) {
+    res.status(400).json(error);
+  }
+});
+
+// admin
+app.post("/admin/signin", async (req, res) => {
+  const { username, password } = req.body;
+
+  const params = new AdminInitiateAuthCommand({
+    AuthFlow: AuthFlowType.ADMIN_USER_PASSWORD_AUTH,
+    ClientId: CLIENT_ID,
+    UserPoolId: process.env.AWS_USER_POOL_ID,
+    AuthParameters: {
+      USERNAME: username,
+      PASSWORD: password,
+      // SECRET_HASH: getSecretHash(username, CLIENT_ID, CLIENT_SECRET),
+    },
   });
 
   try {
